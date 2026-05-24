@@ -8,22 +8,26 @@ interface ProxyImageProps extends ImgHTMLAttributes<HTMLImageElement> {
 }
 
 export default function ProxyImage({ srcUrl, ...props }: ProxyImageProps) {
-  const [src, setSrc] = useState<string | undefined>(srcUrl ? getProxiedCors(srcUrl) : undefined);
-  const [failed, setFailed] = useState(false);
+  const [src, setSrc] = useState<string | undefined>(srcUrl || undefined);
+  const [failCount, setFailCount] = useState(0);
 
   useEffect(() => {
     if (srcUrl) {
-      setSrc(getProxiedCors(srcUrl));
-      setFailed(false);
+      setSrc(srcUrl); // Try direct URL first
+      setFailCount(0);
     } else {
       setSrc(undefined);
     }
   }, [srcUrl]);
 
   const handleError = () => {
-    if (!failed && srcUrl) {
-      setFailed(true);
-      setSrc(getProxiedFallback(srcUrl));
+    if (!srcUrl) return;
+    if (failCount === 0) {
+      setFailCount(1);
+      setSrc(getProxiedCors(srcUrl)); // Second try
+    } else if (failCount === 1) {
+      setFailCount(2);
+      setSrc(getProxiedFallback(srcUrl)); // Third try
     }
   };
 
@@ -33,6 +37,7 @@ export default function ProxyImage({ srcUrl, ...props }: ProxyImageProps) {
     <img
       src={src}
       onError={handleError}
+      referrerPolicy="no-referrer"
       {...props}
     />
   );

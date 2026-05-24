@@ -5,6 +5,8 @@ export interface Anime {
   episodeNumber?: number;
   releaseDate?: string;
   type?: string;
+  sub?: number;
+  dub?: number;
 }
 
 export interface AnimeDetails {
@@ -34,6 +36,7 @@ export interface StreamResponse {
     }[];
   };
   tracks?: SubtitleTrack[];
+  referer?: string;
 }
 
 export interface SubtitleTrack {

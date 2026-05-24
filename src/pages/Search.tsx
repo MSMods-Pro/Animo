@@ -46,18 +46,20 @@ export default function Search() {
   if (error) return <ErrorState message={error} onRetry={() => fetchResults(query)} />;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-          Search Results for <span className="text-orange-500">"{query}"</span>
+    <div className="container mx-auto px-4 py-12">
+      <div className="mb-10 pb-4 border-b border-white/5">
+        <h1 className="text-3xl font-black text-white flex items-center gap-2 tracking-tight">
+          Search Results for <span className="text-[#fca311]">"{query}"</span>
         </h1>
-        <p className="text-zinc-400 mt-1">Found {results.length} results</p>
+        <p className="text-zinc-400 mt-2 font-medium">Found {results.length} results</p>
       </div>
       
       {results.length === 0 ? (
-        <div className="text-center text-zinc-500 py-12">No anime found matching your criteria.</div>
+        <div className="text-center text-zinc-500 py-16 bg-[#1e1e24] rounded-lg border border-white/5 mx-auto max-w-2xl">
+          <p className="text-xl font-medium text-zinc-400">No anime found matching "{query}"</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-8">
           {results.map((anime) => (
             <AnimeCard key={anime.id} anime={anime} />
           ))}

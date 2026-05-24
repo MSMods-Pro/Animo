@@ -13,7 +13,7 @@ import Watch from './pages/Watch';
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-orange-500/30">
+      <div className="min-h-screen bg-[#0f0f11] text-zinc-50 font-sans selection:bg-[#fca311]/30">
         <Navbar />
         <main>
           <Routes>

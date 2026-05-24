@@ -89,6 +89,63 @@ async function startServer() {
     });
   });
 
+  // --- M3U8 STREAM PROXY ---
+  app.get('/api/m3u8-proxy', async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      const referer = req.query.referer as string || '';
+      
+      if (!url) {
+        res.status(400).send('No url provided');
+        return;
+      }
+      
+      const headers: Record<string, string> = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      };
+      if (referer) {
+        headers['Referer'] = referer;
+        headers['Origin'] = new URL(referer).origin;
+      }
+
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) {
+        res.status(resp.status).send(`Failed to fetch upstream: ${resp.statusText}`);
+        return;
+      }
+
+      const contentType = resp.headers.get('content-type') || 'application/vnd.apple.mpegurl';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      if (contentType.includes('mpegurl') || url.includes('.m3u8')) {
+        const text = await resp.text();
+        const rewritten = text.split('\n').map(line => {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('#')) {
+            const absoluteUrl = trimmed.startsWith('http') ? trimmed : new URL(trimmed, url).toString();
+            return `/api/m3u8-proxy?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}`;
+          }
+          if (trimmed.includes('URI="')) {
+            return line.replace(/URI="(.*?)"/g, (match, p1) => {
+              const absoluteUrl = p1.startsWith('http') ? p1 : new URL(p1, url).toString();
+              return `URI="/api/m3u8-proxy?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}"`;
+            });
+          }
+          return line;
+        }).join('\n');
+        res.send(rewritten);
+      } else {
+        // It's a binary file like .ts chunk
+        const arrayBuffer = await resp.arrayBuffer();
+        res.send(Buffer.from(arrayBuffer));
+      }
+    } catch (error) {
+      console.error('Proxy Error:', error);
+      res.status(500).send('Proxy Error');
+    }
+  });
+
   // --- VITE MIDDLEWARE ---
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
