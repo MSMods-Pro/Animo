@@ -1,0 +1,6 @@
+{
+  "name": "Aniko",
+  "description": "A premium Anime Streaming Website featuring HLS playback, search, and a beautiful dark UI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
