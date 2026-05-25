@@ -3,17 +3,20 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { animeApi } from '../lib/api';
 import { StreamResponse, Episode } from '../types';
 import HLSPlayer from '../components/HLSPlayer';
-import PageLoader from '../components/PageLoader';
 import ErrorState from '../components/ErrorState';
 import { ArrowLeft, Play, PlayCircle, SkipBack, SkipForward, Search } from 'lucide-react';
+
 import { cn } from '../lib/utils';
+import { useContinueWatching } from '../hooks/useContinueWatching';
 
 export default function Watch() {
   const { anime_id, ep_id } = useParams<{ anime_id: string; ep_id: string }>();
   const navigate = useNavigate();
+  const { updateProgress } = useContinueWatching();
   
   const [streamData, setStreamData] = useState<StreamResponse | null>(null);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [server, setServer] = useState('hd-1'); 
@@ -39,7 +42,7 @@ export default function Watch() {
     }
   };
 
-  const fetchEpisodes = async () => {
+  const fetchEpisodesAndDetails = async () => {
     if (!anime_id) return;
     try {
       const eps = await animeApi.getEpisodes(anime_id);
@@ -47,10 +50,17 @@ export default function Watch() {
     } catch (err) {
       console.error('Failed to load episodes', err);
     }
+    
+    try {
+      const info = await animeApi.getAnimeInfo(anime_id);
+      setDetails(info);
+    } catch (err) {
+      console.error('Failed to load anime details', err);
+    }
   };
 
   useEffect(() => {
-    fetchEpisodes();
+    fetchEpisodesAndDetails();
   }, [anime_id]);
 
   useEffect(() => {
@@ -101,7 +111,7 @@ export default function Watch() {
           <div className="bg-[#0a0a0c] overflow-hidden border border-white/10 shadow-2xl rounded-t-lg xl:rounded-lg">
             {loading ? (
               <div className="aspect-video w-full flex flex-col items-center justify-center bg-black">
-                <PageLoader />
+                <div className="w-10 h-10 border-4 border-[#fca311]/30 border-t-[#fca311] rounded-full animate-spin" />
                 <span className="text-zinc-500 mt-4 text-sm animate-pulse tracking-widest uppercase font-bold">Connecting...</span>
               </div>
             ) : error ? (
@@ -120,6 +130,20 @@ export default function Watch() {
                 outro={streamData.outro}
                 animeId={anime_id}
                 epId={ep_id}
+                onTimeUpdate={(currentTime, duration) => {
+                  if (anime_id && currentEpisode && details) {
+                    updateProgress({
+                      animeId: anime_id,
+                      epId: currentEpisode.id,
+                      title: details.title,
+                      image: details.image,
+                      epTitle: currentEpisode.title,
+                      epNumber: currentEpisode.number,
+                      time: currentTime,
+                      timestamp: Date.now()
+                    });
+                  }
+                }}
               />
             ) : null}
 

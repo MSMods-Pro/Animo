@@ -6,6 +6,7 @@ import AnimeCard from '../components/AnimeCard';
 import PageLoader from '../components/PageLoader';
 import ErrorState from '../components/ErrorState';
 import ProxyImage from '../components/ProxyImage';
+import ContinueWatching from '../components/ContinueWatching';
 import { Flame, Play, Clock, TrendingUp } from 'lucide-react';
 
 export default function Home() {
@@ -78,53 +79,66 @@ export default function Home() {
   return (
     <div className="w-full pb-12">
       {/* Hero Slider Section */}
-      {heroAnime && (
-        <div className="relative w-full h-[60vh] min-h-[500px] bg-[#0a0a0c] mb-12 flex items-center overflow-hidden transition-all duration-700">
-          <div key={heroAnime.id} className="absolute inset-0 animate-in fade-in duration-1000">
-            <ProxyImage 
-              srcUrl={heroAnime.image} 
-              alt="Hero"
-              className="absolute inset-0 w-full h-full object-cover opacity-30 blur-sm"
-            />
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f11] via-[#0f0f11]/60 to-transparent z-0" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0f0f11] via-[#0f0f11]/80 to-transparent z-0" />
+      {heroItems.length > 0 && (
+        <div className="relative w-full h-[60vh] min-h-[500px] bg-[#0a0a0c] mb-12 flex items-center overflow-hidden">
+          {heroItems.map((item, idx) => (
+             <div 
+               key={`hero-bg-${item.id}`} 
+               className={`absolute inset-0 transition-opacity duration-1000 ${heroIndex === idx ? 'opacity-100' : 'opacity-0'}`}
+             >
+               <ProxyImage 
+                 srcUrl={item.image} 
+                 alt="Hero"
+                 className="absolute inset-0 w-full h-full object-cover opacity-30 blur-sm"
+               />
+             </div>
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f11] via-[#0f0f11]/60 to-transparent z-0 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0f0f11] via-[#0f0f11]/80 to-transparent z-0 pointer-events-none" />
           
-          <div className="container mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center gap-8">
-             <div key={`poster-${heroAnime.id}`} className="hidden md:block w-52 shrink-0 rounded-lg overflow-hidden shadow-2xl shadow-[#fca311]/10 border border-white/10 group animate-in slide-in-from-left-8 duration-700 fade-in">
-               <ProxyImage srcUrl={heroAnime.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-             </div>
-             <div key={`info-${heroAnime.id}`} className="flex-1 animate-in slide-in-from-right-8 duration-700 fade-in">
-                <span className="flex items-center gap-2 text-[#fca311] font-black tracking-widest text-sm mb-4 uppercase">
-                  <Flame className="w-5 h-5" fill="currentColor" />
-                  #1 Spotlight
-                </span>
-                <h1 className="text-4xl md:text-6xl font-black text-white mb-4 line-clamp-2 leading-tight">
-                  {heroAnime.title}
-                </h1>
-                <div className="flex flex-wrap items-center gap-3 mb-8 text-xs md:text-sm font-bold tracking-wider">
-                   {heroAnime.type && (
-                     <span className="bg-white text-black px-2 py-1 rounded shadow-sm">{heroAnime.type}</span>
-                   )}
-                   {heroAnime.sub && (
-                     <span className="flex items-center gap-1 bg-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
-                       SUB {heroAnime.sub}
-                     </span>
-                   )}
-                   {heroAnime.dub && (
-                     <span className="flex items-center gap-1 bg-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
-                       DUB {heroAnime.dub}
-                     </span>
-                   )}
-                </div>
-                <Link 
-                  to={`/anime/${heroAnime.id}`}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#fca311] hover:bg-[#e6940f] text-zinc-950 font-black rounded-sm transition-transform hover:scale-105 shadow-[0_0_20px_rgba(252,163,17,0.3)] text-sm md:text-base uppercase tracking-wider"
-                >
-                  <Play className="w-5 h-5" fill="currentColor" />
-                  Start Watching
-                </Link>
-             </div>
+          <div className="container mx-auto px-4 relative z-10 grid">
+            {/* We map the content to allow smooth fading without layout shift from unmounting */}
+            {heroItems.map((item, idx) => (
+               <div 
+                 key={`hero-content-${item.id}`}
+                 className={`col-start-1 row-start-1 flex flex-col md:flex-row items-center gap-8 transition-all duration-1000 ${heroIndex === idx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}
+               >
+                 <div className="hidden md:block w-52 shrink-0 rounded-lg overflow-hidden shadow-2xl shadow-[#fca311]/10 border border-white/10 group">
+                   <ProxyImage srcUrl={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                 </div>
+                 <div className="flex-1 mt-12 md:mt-0">
+                    <span className="flex items-center gap-2 text-[#fca311] font-black tracking-widest text-sm mb-4 uppercase">
+                      <Flame className="w-5 h-5" fill="currentColor" />
+                      #1 Spotlight
+                    </span>
+                    <h1 className="text-4xl md:text-6xl font-black text-white mb-4 line-clamp-2 leading-tight">
+                      {item.title}
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-3 mb-8 text-xs md:text-sm font-bold tracking-wider">
+                       {item.type && (
+                         <span className="bg-white text-black px-2 py-1 rounded shadow-sm">{item.type}</span>
+                       )}
+                       {item.sub && (
+                         <span className="flex items-center gap-1 bg-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
+                           SUB {item.sub}
+                         </span>
+                       )}
+                       {item.dub && (
+                         <span className="flex items-center gap-1 bg-zinc-800/80 text-zinc-300 px-2 py-1 rounded">
+                           DUB {item.dub}
+                         </span>
+                       )}
+                    </div>
+                    <Link 
+                      to={`/anime/${item.id}`}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#fca311] hover:bg-[#e6940f] text-zinc-950 font-black rounded-sm transition-transform hover:scale-105 shadow-[0_0_20px_rgba(252,163,17,0.3)] text-sm md:text-base uppercase tracking-wider"
+                    >
+                      <Play className="w-5 h-5" fill="currentColor" />
+                      Start Watching
+                    </Link>
+                 </div>
+               </div>
+            ))}
           </div>
 
           {/* Slider Indicators */}
@@ -140,6 +154,11 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Continue Watching Section */}
+      <div className="container mx-auto px-4 mt-8">
+        <ContinueWatching />
+      </div>
 
       {/* Trending Section */}
       <div className="container mx-auto px-4 mb-16">

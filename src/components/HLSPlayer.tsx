@@ -12,9 +12,10 @@ interface HLSPlayerProps {
   outro?: { start: number; end: number };
   animeId?: string;
   epId?: string;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
 }
 
-export default function HLSPlayer({ url, tracks, referer, intro, outro, animeId, epId }: HLSPlayerProps) {
+export default function HLSPlayer({ url, tracks, referer, intro, outro, animeId, epId, onTimeUpdate }: HLSPlayerProps) {
   const artRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [urlIndex, setUrlIndex] = useState(0);
@@ -23,9 +24,9 @@ export default function HLSPlayer({ url, tracks, referer, intro, outro, animeId,
   const urlsToTry = useMemo(() => {
     if (!url) return [];
     return [
+      url, // Try direct URL first. Often works and avoids Vercel proxy limits!
       `/api/m3u8-proxy?url=${encodeURIComponent(url)}&referer=${encodeURIComponent(referer || '')}`,
       getProxiedM3U8(url), // Try secondary m3u8 proxy
-      url, // Direct url might just work
       getProxiedCors(url) // Try generic cors proxy as last resort
     ];
   }, [url, referer]);
@@ -193,25 +194,28 @@ export default function HLSPlayer({ url, tracks, referer, intro, outro, animeId,
        const currentTime = art.currentTime;
        if (currentTime > 0) {
          localStorage.setItem(progressKey, currentTime.toString());
+         if (onTimeUpdate) {
+           onTimeUpdate(currentTime, art.duration || 0);
+         }
        }
 
        // Skip Intro Overlay
        if (intro && intro.start > 0 && intro.end > 0) {
           if (currentTime >= intro.start && currentTime <= intro.end) {
-             if (!art.template.$skipIntroButton) {
+             if (!(art.template as any).$skipIntroButton) {
                 const btn = document.createElement('button');
                 btn.className = 'absolute bottom-20 right-8 z-[90] bg-[#fca311] text-zinc-950 font-bold px-4 py-2 rounded shadow-lg uppercase tracking-wider text-sm hover:scale-105 transition-transform';
                 btn.innerText = 'Skip Intro';
                 btn.onclick = () => {
                    art.currentTime = intro.end;
                 };
-                art.template.$skipIntroButton = btn;
+                (art.template as any).$skipIntroButton = btn;
                 art.template.$player.appendChild(btn);
              }
           } else {
-             if (art.template.$skipIntroButton) {
-                art.template.$player.removeChild(art.template.$skipIntroButton);
-                delete art.template.$skipIntroButton;
+             if ((art.template as any).$skipIntroButton) {
+                art.template.$player.removeChild((art.template as any).$skipIntroButton);
+                delete (art.template as any).$skipIntroButton;
              }
           }
        }
@@ -219,20 +223,20 @@ export default function HLSPlayer({ url, tracks, referer, intro, outro, animeId,
        // Skip Outro Overlay
        if (outro && outro.start > 0 && outro.end > 0) {
           if (currentTime >= outro.start && currentTime <= outro.end) {
-             if (!art.template.$skipOutroButton) {
+             if (!(art.template as any).$skipOutroButton) {
                 const btn = document.createElement('button');
                 btn.className = 'absolute bottom-20 right-8 z-[90] bg-[#fca311] text-zinc-950 font-bold px-4 py-2 rounded shadow-lg uppercase tracking-wider text-sm hover:scale-105 transition-transform';
                 btn.innerText = 'Skip Outro';
                 btn.onclick = () => {
                    art.currentTime = outro.end; // Skip to end or next episode
                 };
-                art.template.$skipOutroButton = btn;
+                (art.template as any).$skipOutroButton = btn;
                 art.template.$player.appendChild(btn);
              }
           } else {
-             if (art.template.$skipOutroButton) {
-                art.template.$player.removeChild(art.template.$skipOutroButton);
-                delete art.template.$skipOutroButton;
+             if ((art.template as any).$skipOutroButton) {
+                art.template.$player.removeChild((art.template as any).$skipOutroButton);
+                delete (art.template as any).$skipOutroButton;
              }
           }
        }
