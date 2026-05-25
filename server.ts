@@ -147,13 +147,13 @@ async function startServer() {
   });
 
   // --- VITE MIDDLEWARE ---
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -161,9 +161,18 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  return app;
+}
+
+// Start the server if we're not running in a serverless environment like Vercel
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+  startServer().then(app => {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
   });
 }
 
-startServer();
+// Export the app for Vercel serverless environment
+export default startServer;

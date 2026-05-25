@@ -18,6 +18,8 @@ export interface AnimeDetails {
   status: string;
   totalEpisodes: number;
   releaseDate: string;
+  recommendations?: Anime[];
+  related?: Anime[];
 }
 
 export interface Episode {
@@ -37,6 +39,8 @@ export interface StreamResponse {
   };
   tracks?: SubtitleTrack[];
   referer?: string;
+  intro?: { start: number; end: number };
+  outro?: { start: number; end: number };
 }
 
 export interface SubtitleTrack {

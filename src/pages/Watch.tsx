@@ -5,7 +5,7 @@ import { StreamResponse, Episode } from '../types';
 import HLSPlayer from '../components/HLSPlayer';
 import PageLoader from '../components/PageLoader';
 import ErrorState from '../components/ErrorState';
-import { ArrowLeft, Server, Play, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Play, PlayCircle, SkipBack, SkipForward, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function Watch() {
@@ -18,6 +18,7 @@ export default function Watch() {
   const [error, setError] = useState<string | null>(null);
   const [server, setServer] = useState('hd-1'); 
   const [serverType, setServerType] = useState<'sub' | 'dub'>('sub');
+  const [episodeSearch, setEpisodeSearch] = useState('');
 
   const fetchStream = async (serverId: string, type: string) => {
     if (!anime_id || !ep_id) return;
@@ -74,7 +75,16 @@ export default function Watch() {
     }
   }, [episodes, ep_id]);
 
-  const displayedEpisodes = episodes.slice(selectedSeason * CHUNK_SIZE, (selectedSeason + 1) * CHUNK_SIZE);
+  const displayedEpisodes = episodeSearch 
+    ? episodes.filter(e => 
+        e.title?.toLowerCase().includes(episodeSearch.toLowerCase()) || 
+        String(e.number).includes(episodeSearch)
+      )
+    : episodes.slice(selectedSeason * CHUNK_SIZE, (selectedSeason + 1) * CHUNK_SIZE);
+
+  const currentIndex = episodes.findIndex(e => String(e.id) === String(ep_id));
+  const prevEpisode = currentIndex > 0 ? episodes[currentIndex - 1] : null;
+  const nextEpisode = currentIndex !== -1 && currentIndex < episodes.length - 1 ? episodes[currentIndex + 1] : null;
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-8">
@@ -106,48 +116,91 @@ export default function Watch() {
                 url={streamData.results.streamingLink[0].link.file} 
                 tracks={streamData.tracks}
                 referer={streamData.referer}
+                intro={streamData.intro}
+                outro={streamData.outro}
+                animeId={anime_id}
+                epId={ep_id}
               />
             ) : null}
 
-            <div className="p-4 sm:p-6 bg-[#1e1e24] border-t border-white/5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              <div>
-                <h1 className="text-xl font-bold text-white uppercase tracking-wider">
-                  {currentEpisode?.title || readableEp}
-                </h1>
-                <p className="text-zinc-400 text-sm mt-1 font-semibold tracking-wide">Currently playing</p>
-              </div>
-              
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center bg-[#2a2a32] rounded p-1">
-                   <button
-                     onClick={() => setServerType('sub')}
-                     className={cn(
-                       "px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors",
-                       serverType === 'sub' ? "bg-[#fca311] text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-white hover:bg-white/5"
-                     )}
-                   >
-                     SUB
-                   </button>
-                   <button
-                     onClick={() => setServerType('dub')}
-                     className={cn(
-                       "px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors",
-                       serverType === 'dub' ? "bg-[#fca311] text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-white hover:bg-white/5"
-                     )}
-                   >
-                     DUB
-                   </button>
+            <div className="p-4 sm:p-5 bg-[#1e1e24] border-t border-white/5 flex flex-col gap-4">
+              <div className="flex items-center justify-between w-full">
+                {/* Left Side: Prev Button */}
+                <div className="flex-shrink-0 w-20 sm:w-24">
+                  {prevEpisode ? (
+                    <Link 
+                      to={`/watch/${anime_id}/${prevEpisode.id}`}
+                      className="flex gap-1.5 items-center justify-center text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-[#fca311] transition-colors bg-[#2a2a32] hover:bg-[#32323b] px-3 py-2 rounded border border-white/5 w-full"
+                    >
+                      <SkipBack className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Prev</span>
+                    </Link>
+                  ) : null}
                 </div>
                 
-                <select
-                  value={server}
-                  onChange={(e) => setServer(e.target.value)}
-                  className="bg-[#2a2a32] text-white text-sm font-bold uppercase tracking-wider px-4 py-2.5 rounded border border-white/5 focus:outline-none focus:border-[#fca311] appearance-none pr-8 relative cursor-pointer hover:bg-[#32323b] transition-colors"
-                  style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23fca311" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1em' }}
-                >
-                  <option value="hd-1">Server HD-1</option>
-                  <option value="hd-2">Server HD-2</option>
-                </select>
+                {/* Center: Title info */}
+                <div className="text-center flex-1 px-4 min-w-0">
+                  <h1 className="text-sm font-bold text-white uppercase tracking-wider truncate">
+                    {currentEpisode?.title || readableEp}
+                  </h1>
+                  <p className="text-zinc-400 text-[11px] mt-1 font-bold tracking-wider">
+                    EPISODE {currentEpisode?.number || ''}
+                  </p>
+                </div>
+
+                {/* Right Side: Next Button */}
+                <div className="flex-shrink-0 w-20 sm:w-24">
+                  {nextEpisode ? (
+                    <Link 
+                      to={`/watch/${anime_id}/${nextEpisode.id}`}
+                      className="flex gap-1.5 items-center justify-center text-xs font-bold uppercase tracking-wider text-[#1e1e24] bg-[#fca311] hover:bg-[#e6940f] transition-colors px-3 py-2 rounded shadow-[0_0_10px_rgba(252,163,17,0.2)] w-full"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <SkipForward className="w-3.5 h-3.5" />
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+              
+              {/* Settings inline */}
+              <div className="flex items-center justify-between pt-3 border-t border-white/5 w-full">
+                {/* Audio Type */}
+                <div className="flex bg-[#0a0a0c] p-0.5 rounded border border-white/5">
+                  <button
+                    onClick={() => setServerType('sub')}
+                    className={cn(
+                      "px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded transition-all",
+                      serverType === 'sub' ? "bg-[#fca311] text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Sub
+                  </button>
+                  <button
+                    onClick={() => setServerType('dub')}
+                    className={cn(
+                      "px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded transition-all",
+                      serverType === 'dub' ? "bg-[#fca311] text-zinc-950 shadow-sm" : "text-zinc-400 hover:text-white"
+                    )}
+                  >
+                    Dub
+                  </button>
+                </div>
+                
+                {/* Server */}
+                <div className="flex bg-[#0a0a0c] p-0.5 rounded border border-white/5">
+                   {['hd-1', 'hd-2'].map((srv) => (
+                      <button
+                        key={srv}
+                        onClick={() => setServer(srv)}
+                        className={cn(
+                          "px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded transition-all",
+                          server === srv ? "bg-[#2a2a32] text-[#fca311] shadow-sm border border-white/5" : "text-zinc-400 hover:text-white border border-transparent"
+                        )}
+                      >
+                        {srv.toUpperCase()}
+                      </button>
+                   ))}
+                </div>
               </div>
             </div>
           </div>
@@ -163,7 +216,18 @@ export default function Watch() {
                  <span className="ml-auto bg-[#32323b] text-zinc-400 px-2 py-0.5 rounded text-xs font-bold">{episodes.length}</span>
                </div>
                
-               {seasons > 1 && (
+               <div className="relative">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                 <input
+                   type="text"
+                   placeholder="Search episode..."
+                   value={episodeSearch}
+                   onChange={(e) => setEpisodeSearch(e.target.value)}
+                   className="w-full bg-[#0a0a0c] text-white text-sm px-9 py-2 rounded focus:outline-none focus:border-[#fca311] focus:ring-1 focus:ring-[#fca311] border border-white/5 transition-all outline-none placeholder:text-zinc-600 font-medium"
+                 />
+               </div>
+               
+               {seasons > 1 && !episodeSearch && (
                  <select
                    value={selectedSeason}
                    onChange={(e) => setSelectedSeason(Number(e.target.value))}

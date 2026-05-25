@@ -37,6 +37,32 @@ export const animeApi = {
     }
   },
 
+  getRandomAnime: async (): Promise<AnimeDetails | null> => {
+    try {
+      const response = await apiClient.get('/random');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getCategoryAnime: async (category: string, page = 1): Promise<Anime[]> => {
+    try {
+      const response = await apiClient.get(`/${category}`, { params: { page } });
+      const list = response.data?.data || response.data?.results || [];
+      return list.map((item: any) => ({
+        id: item.id,
+        title: item.title || item.name,
+        image: item.poster || item.image,
+        type: item.type,
+        sub: Number(item.sub || item.tvInfo?.sub) || undefined,
+        dub: Number(item.dub || item.tvInfo?.dub) || undefined,
+      }));
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
   searchAnime: async (keyword: string): Promise<Anime[]> => {
     try {
       const response = await apiClient.get(`/search`, { params: { keyword } });
@@ -54,12 +80,76 @@ export const animeApi = {
     }
   },
 
+  getSearchSuggestions: async (keyword: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/search/suggest`, { params: { keyword } });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getAdvancedFilter: async (params: any): Promise<Anime[]> => {
+    try {
+      const response = await apiClient.get(`/filter`, { params });
+      const list = response.data?.data || response.data?.results || [];
+      return list.map((item: any) => ({
+        id: item.id,
+        title: item.title || item.name,
+        image: item.poster || item.image,
+        type: item.type,
+        sub: Number(item.sub || item.tvInfo?.sub) || undefined,
+        dub: Number(item.dub || item.tvInfo?.dub) || undefined,
+      }));
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getQtip: async (id: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/qtip/${id}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getProducerAnime: async (producerName: string, page = 1): Promise<Anime[]> => {
+    try {
+      const response = await apiClient.get(`/producer/${producerName}`, { params: { page } });
+      const list = response.data?.data || response.data?.results || [];
+      return list.map((item: any) => ({
+        id: item.id,
+        title: item.title || item.name,
+        image: item.poster || item.image,
+        type: item.type,
+        sub: Number(item.sub) || undefined,
+        dub: Number(item.dub) || undefined,
+      }));
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
   getAnimeInfo: async (id: string): Promise<AnimeDetails | null> => {
     try {
       const response = await apiClient.get(`/info`, { params: { id } });
       // API format: { success: true, data: { ... } }
       const data = response.data?.data || response.data?.results?.data;
       if (!data) return null;
+
+      const formatAnimeList = (list: any[]) => {
+        if (!list || !Array.isArray(list)) return [];
+        return list.map(item => ({
+          id: item.id || item.animeId,
+          title: item.title || item.name,
+          image: item.poster || item.image || item.cover,
+          type: item.type,
+          sub: Number(item.sub || item.episodes?.sub) || undefined,
+          dub: Number(item.dub || item.episodes?.dub) || undefined,
+        }));
+      };
 
       return {
         id: data.id,
@@ -70,6 +160,8 @@ export const animeApi = {
         status: data.status?.[0] || data.animeInfo?.Status || 'Unknown',
         totalEpisodes: Number(data.episodes?.[0] || data.animeInfo?.Episodes) || 0,
         releaseDate: data.premiered?.[0] || data.animeInfo?.Aired || '',
+        recommendations: formatAnimeList(data.recommendations || data.recommended || []),
+        related: formatAnimeList(data.related || [])
       };
     } catch (error) {
       handleApiError(error);
@@ -123,8 +215,92 @@ export const animeApi = {
           }]
         },
         tracks: data.subtitles || [],
-        referer: data.referer
+        referer: data.referer,
+        intro: data.intro,
+        outro: data.outro
       };
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getStreamFallbackLink: async (animeId: string, epId: string, server = 'hd-1', type = 'sub'): Promise<StreamResponse | null> => {
+    try {
+      const response = await apiClient.get(`/stream/fallback`, { 
+        params: { id: animeId, ep: epId, server, type } 
+      });
+      
+      const data = response.data?.data;
+      if (!data || !data.m3u8) return null;
+      
+      return {
+        results: {
+          streamingLink: [{
+            link: {
+              file: data.m3u8
+            }
+          }]
+        },
+        tracks: data.subtitles || [],
+        referer: data.referer,
+        intro: data.intro,
+        outro: data.outro
+      };
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getServers: async (episodeId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/servers/${episodeId}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getCharacters: async (animeId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/character/list/${animeId}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getCharacterDetails: async (characterId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/character/${characterId}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getVoiceActorDetails: async (actorId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/actors/${actorId}`);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getScheduleByDate: async (date: string): Promise<any> => {
+    // date format: YYYY-MM-DD
+    try {
+      const response = await apiClient.get(`/schedule`, { params: { date } });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  getScheduleForAnime: async (animeId: string): Promise<any> => {
+    try {
+      const response = await apiClient.get(`/schedule/${animeId}`);
+      return response.data;
     } catch (error) {
       handleApiError(error);
     }
